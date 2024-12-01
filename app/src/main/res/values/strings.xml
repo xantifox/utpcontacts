@@ -1,3 +1,4 @@
 <resources>
-    <string name="app_name">UtpContacts</string>
+    <string name="app_name">UTPContacts</string>
+    <string name="app_title">MisContactos</string>
 </resources>
