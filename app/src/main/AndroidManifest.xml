@@ -11,6 +11,10 @@
         android:theme="@style/Theme.UTPContacts">
 
         <activity
+            android:name=".activity.ContactListActivity"
+            android:exported="false"/>
+
+        <activity
             android:name=".activity.LoginActivity"
             android:exported="true"
             android:theme="@style/Theme.UTPContacts.NoActionBar"> <!-- Tema sin ActionBar para el login -->

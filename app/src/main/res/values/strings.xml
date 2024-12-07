@@ -1,4 +1,10 @@
 <resources>
     <string name="app_name">UTPContacts</string>
     <string name="app_title">MisContactos</string>
+
+    <string name="contacts_title">Contactos</string>
+    <string name="search_hint">Buscar contactos</string>
+    <string name="no_contacts">No hay contactos</string>
+    <string name="add_contact">Agregar contacto</string>
+
 </resources>
