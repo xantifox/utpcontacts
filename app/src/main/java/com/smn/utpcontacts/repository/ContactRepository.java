@@ -30,7 +30,7 @@ public class ContactRepository {
 
     // Métodos para Contact
     public LiveData<List<Contact>> getAllContacts() {
-        return contactDao.getAllContacts(userId);
+        return contactDao.getAllContacts(userId, "name");
     }
 
     public void insert(Contact contact) {

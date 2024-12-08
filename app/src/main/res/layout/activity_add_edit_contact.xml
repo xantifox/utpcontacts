@@ -14,9 +14,7 @@
             android:layout_width="match_parent"
             android:layout_height="?attr/actionBarSize"
             android:background="?attr/colorPrimary"
-            app:navigationIcon="@drawable/ic_close"
-            app:title="Nuevo Contacto"
-            app:titleTextColor="@color/white"/>
+            android:theme="@style/ThemeOverlay.MaterialComponents.Dark.ActionBar"/>
 
     </com.google.android.material.appbar.AppBarLayout>
 
@@ -36,12 +34,13 @@
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_marginBottom="16dp"
-                android:hint="Nombre">
+                style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox">
 
                 <com.google.android.material.textfield.TextInputEditText
                     android:id="@+id/etName"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
+                    android:hint="Nombre"
                     android:inputType="textPersonName"/>
 
             </com.google.android.material.textfield.TextInputLayout>
@@ -51,12 +50,13 @@
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_marginBottom="16dp"
-                android:hint="Teléfono">
+                style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox">
 
                 <com.google.android.material.textfield.TextInputEditText
                     android:id="@+id/etPhone"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
+                    android:hint="Teléfono"
                     android:inputType="phone"/>
 
             </com.google.android.material.textfield.TextInputLayout>
@@ -66,12 +66,13 @@
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_marginBottom="16dp"
-                android:hint="Dirección">
+                style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox">
 
                 <com.google.android.material.textfield.TextInputEditText
                     android:id="@+id/etAddress"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
+                    android:hint="Dirección"
                     android:inputType="textPostalAddress"/>
 
             </com.google.android.material.textfield.TextInputLayout>
@@ -80,13 +81,20 @@
 
     </androidx.core.widget.NestedScrollView>
 
+    <!-- Agregar el ProgressBar aquí -->
+    <ProgressBar
+        android:id="@+id/progressBar"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_gravity="center"
+        android:visibility="gone"/>
+
     <com.google.android.material.floatingactionbutton.FloatingActionButton
         android:id="@+id/fabSave"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_gravity="bottom|end"
         android:layout_margin="16dp"
-        android:contentDescription="Guardar contacto"
-        app:srcCompat="@drawable/ic_save"/>
+        android:src="@drawable/ic_save"/>
 
 </androidx.coordinatorlayout.widget.CoordinatorLayout>

@@ -7,4 +7,26 @@
     <string name="no_contacts">No hay contactos</string>
     <string name="add_contact">Agregar contacto</string>
 
+    <string name="edit_contact">Editar Contacto</string>
+    <string name="new_contact">Nuevo Contacto</string>
+    <string name="name_required">El nombre es requerido</string>
+    <string name="invalid_phone">Número de teléfono inválido</string>
+    <string name="contact_created">Contacto creado exitosamente</string>
+    <string name="contact_updated">Contacto actualizado exitosamente</string>
+    <string name="contact_not_found">Contacto no encontrado</string>
+    <string name="unsaved_changes_title">Cambios sin guardar</string>
+    <string name="unsaved_changes_message">¿Deseas descartar los cambios?</string>
+    <string name="discard">Descartar</string>
+    <string name="keep_editing">Seguir editando</string>
+
+    <string name="contact_added_to_favorites">Contacto añadido a favoritos</string>
+    <string name="contact_removed_from_favorites">Contacto eliminado de favoritos</string>
+    <string name="filter_favorites">Filtrar favoritos</string>
+    <string name="show_all">Mostrar todos</string>
+    <string name="no_favorite_contacts">No se encontraron favoritos</string>
+    <string name="logout_title">Cerrar sesión</string>
+    <string name="logout_message">¿Desea cerrar sesión?</string>
+    <string name="yes">Sí</string>
+    <string name="no">No</string>
+    <string name="action_favorites">Añadir a favoritos</string>
 </resources>

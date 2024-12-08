@@ -11,33 +11,66 @@ import java.util.List;
 
 @Dao
 public interface ContactDao {
-    @Query("SELECT * FROM contacts WHERE userId = :userId ORDER BY name ASC")
-    LiveData<List<Contact>> getAllContacts(String userId);
+    @Query("SELECT * FROM contacts WHERE userId = :userId ORDER BY " +
+            "CASE WHEN :orderBy = 'name' THEN name " +
+            "WHEN :orderBy = 'address' THEN address " +
+            "ELSE name END " +
+            "COLLATE NOCASE " +
+            "ASC")
+    LiveData<List<Contact>> getAllContacts(String userId, String orderBy);
 
     @Query("SELECT * FROM contacts WHERE id = :contactId")
-    Contact getContactById(long contactId);
+    LiveData<Contact> getContactById(long contactId);
 
-    @Query("SELECT * FROM contacts WHERE userId = :userId AND name LIKE '%' || :query || '%'")
-    LiveData<List<Contact>> searchContacts(String userId, String query);
+    @Query("SELECT * FROM contacts " +
+            "WHERE userId = :userId " +
+            "AND (name LIKE '%' || :query || '%' " +
+            "OR mainPhone LIKE '%' || :query || '%' " +
+            "OR address LIKE '%' || :query || '%') " +
+            "ORDER BY " +
+            "CASE WHEN :orderBy = 'name' THEN name " +
+            "WHEN :orderBy = 'address' THEN address " +
+            "ELSE name END " +
+            "COLLATE NOCASE " +
+            "ASC")
+    LiveData<List<Contact>> searchContacts(String userId, String query, String orderBy);
 
-    @Query("SELECT * FROM contacts WHERE userId = :userId AND favorite = 1 ORDER BY name ASC")
-    LiveData<List<Contact>> getFavoriteContacts(String userId);
+    @Query("SELECT * FROM contacts " +
+            "WHERE userId = :userId AND favorite = 1 " +
+            "ORDER BY " +
+            "CASE WHEN :orderBy = 'name' THEN name " +
+            "WHEN :orderBy = 'address' THEN address " +
+            "ELSE name END " +
+            "COLLATE NOCASE " +
+            "ASC")
+    LiveData<List<Contact>> getFavoriteContacts(String userId, String orderBy);
 
     @Insert
-    void insert(Contact contact);
+    long insert(Contact contact);
 
     @Update
-    void update(Contact contact);
+    int update(Contact contact);
 
     @Delete
-    void delete(Contact contact);
+    int delete(Contact contact);
 
     @Query("SELECT COUNT(*) FROM contacts WHERE userId = :userId")
     LiveData<Integer> getContactCount(String userId);
 
-    @Query("SELECT * FROM contacts WHERE userId = :userId AND mainPhone LIKE '%' || :query || '%'")
-    LiveData<List<Contact>> searchContactsByPhone(String userId, String query);
+    @Query("SELECT COUNT(*) FROM contacts WHERE userId = :userId AND favorite = 1")
+    LiveData<Integer> getFavoriteCount(String userId);
 
-    @Query("SELECT * FROM contacts WHERE userId = :userId AND address LIKE '%' || :query || '%'")
-    LiveData<List<Contact>> searchContactsByAddress(String userId, String query);
+    @Query("SELECT * FROM contacts " +
+            "WHERE userId = :userId " +
+            "AND id IN (" +
+            "    SELECT id FROM contacts " +
+            "    WHERE userId = :userId " +
+            "    ORDER BY " +
+            "    CASE WHEN :orderBy = 'name' THEN name " +
+            "    WHEN :orderBy = 'address' THEN address " +
+            "    ELSE name END " +
+            "    COLLATE NOCASE ASC " +
+            "    LIMIT :limit OFFSET :offset" +
+            ")")
+    LiveData<List<Contact>> getContactsPaged(String userId, String orderBy, int limit, int offset);
 }
