@@ -15,7 +15,7 @@ public interface ContactDao {
     LiveData<List<Contact>> getAllContacts(String userId);
 
     @Query("SELECT * FROM contacts WHERE id = :contactId")
-    LiveData<Contact> getContactById(long contactId);
+    Contact getContactById(long contactId);
 
     @Query("SELECT * FROM contacts WHERE userId = :userId AND name LIKE '%' || :query || '%'")
     LiveData<List<Contact>> searchContacts(String userId, String query);

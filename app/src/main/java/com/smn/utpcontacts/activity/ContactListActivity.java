@@ -90,7 +90,9 @@ public class ContactListActivity extends AppCompatActivity implements
 
     @Override
     public void onContactClick(Contact contact) {
-        Toast.makeText(this, "Editar contacto: " + contact.getName(), Toast.LENGTH_SHORT).show();
+        Intent intent = new Intent(this, AddEditContactActivity.class);
+        intent.putExtra("contact_id", contact.getId());
+        startActivity(intent);
     }
 
     @Override
@@ -121,8 +123,8 @@ public class ContactListActivity extends AppCompatActivity implements
     }
 
     private void addNewContact() {
-        // TODO: Implementar creación de contacto
-        Toast.makeText(this, "Agregar nuevo contacto", Toast.LENGTH_SHORT).show();
+        Intent intent = new Intent(this, AddEditContactActivity.class);
+        startActivity(intent);
     }
 
     private void logout() {
