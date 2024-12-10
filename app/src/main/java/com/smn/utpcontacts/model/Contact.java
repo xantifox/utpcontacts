@@ -16,6 +16,7 @@ public class Contact {
     private String mainPhone;
     private boolean favorite;
     private String userId;
+    private boolean photoChanged = false;
 
     public Contact(String name) {
         this.name = name;
@@ -48,4 +49,12 @@ public class Contact {
 
     public String getUserId() { return userId; }
     public void setUserId(String userId) { this.userId = userId; }
+
+    public boolean isPhotoChanged() {
+        return photoChanged;
+    }
+
+    public void setPhotoChanged(boolean photoChanged) {
+        this.photoChanged = photoChanged;
+    }
 }

@@ -2,11 +2,11 @@
   "formatVersion": 1,
   "database": {
     "version": 2,
-    "identityHash": "b3ebd0cf7ff7be9310ab58ba4ef12bcd",
+    "identityHash": "134320e50233dfcbf16734cf8f6c00b1",
     "entities": [
       {
         "tableName": "contacts",
-        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `name` TEXT, `address` TEXT, `photoUrl` TEXT, `mainPhone` TEXT, `favorite` INTEGER NOT NULL, `userId` TEXT)",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `name` TEXT, `address` TEXT, `photoUrl` TEXT, `mainPhone` TEXT, `favorite` INTEGER NOT NULL, `userId` TEXT, `photoChanged` INTEGER NOT NULL)",
         "fields": [
           {
             "fieldPath": "id",
@@ -49,6 +49,12 @@
             "columnName": "userId",
             "affinity": "TEXT",
             "notNull": false
+          },
+          {
+            "fieldPath": "photoChanged",
+            "columnName": "photoChanged",
+            "affinity": "INTEGER",
+            "notNull": true
           }
         ],
         "primaryKey": {
@@ -302,7 +308,7 @@
     "views": [],
     "setupQueries": [
       "CREATE TABLE IF NOT EXISTS room_master_table (id INTEGER PRIMARY KEY,identity_hash TEXT)",
-      "INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, 'b3ebd0cf7ff7be9310ab58ba4ef12bcd')"
+      "INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, '134320e50233dfcbf16734cf8f6c00b1')"
     ]
   }
 }
