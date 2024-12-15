@@ -11,13 +11,23 @@ import java.util.List;
 
 @Dao
 public interface ContactDao {
-    @Query("SELECT * FROM contacts WHERE userId = :userId ORDER BY " +
+    @Query("SELECT * FROM contacts WHERE userId = :userId AND isPrivate = 0 ORDER BY " +
             "CASE WHEN :orderBy = 'name' THEN name " +
             "WHEN :orderBy = 'address' THEN address " +
             "ELSE name END " +
             "COLLATE NOCASE " +
             "ASC")
     LiveData<List<Contact>> getAllContacts(String userId, String orderBy);
+
+
+    @Query("SELECT * FROM contacts WHERE userId = :userId ORDER BY " +
+            "CASE WHEN :orderBy = 'name' THEN name " +
+            "WHEN :orderBy = 'address' THEN address " +
+            "ELSE name END " +
+            "COLLATE NOCASE " +
+            "ASC")
+    LiveData<List<Contact>> getAllContactsAuthenticated(String userId, String orderBy);
+
 
     @Query("SELECT * FROM contacts WHERE id = :contactId")
     LiveData<Contact> getContactById(long contactId);

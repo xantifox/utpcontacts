@@ -29,4 +29,20 @@
     <string name="yes">Sí</string>
     <string name="no">No</string>
     <string name="action_favorites">Añadir a favoritos</string>
+    <string name="toggle_private_contacts">Ver contactos</string>
+
+    <!-- Ojo: Biometric Authentication -->
+    <string name="biometric_prompt_title">Autenticación requerida</string>
+    <string name="biometric_prompt_subtitle">Use su huella digital para ver todos los contactos</string>
+    <string name="biometric_prompt_negative">Cancelar</string>
+    <string name="authentication_success">Autenticación exitosa</string>
+
+    <!-- Privacy Messages -->
+    <string name="contact_made_private">Contacto marcado como privado</string>
+    <string name="contact_made_public">Contacto marcado como público</string>
+
+    <string name="search">Buscar</string>
+    <string name="logout">Cerrar sesión</string>
+
+    <string name="call_permission_denied">Permiso de llamada denegado</string>
 </resources>

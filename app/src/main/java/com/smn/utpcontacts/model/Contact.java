@@ -17,10 +17,12 @@ public class Contact {
     private boolean favorite;
     private String userId;
     private boolean photoChanged = false;
+    private boolean isPrivate = false;
 
     public Contact(String name) {
         this.name = name;
         this.favorite = false;
+        this.isPrivate = false;
     }
 
     public String getMainPhone() {
@@ -56,5 +58,13 @@ public class Contact {
 
     public void setPhotoChanged(boolean photoChanged) {
         this.photoChanged = photoChanged;
+    }
+
+    public boolean isPrivate() {
+        return isPrivate;
+    }
+
+    public void setPrivate(boolean isPrivate) {
+        this.isPrivate = isPrivate;
     }
 }

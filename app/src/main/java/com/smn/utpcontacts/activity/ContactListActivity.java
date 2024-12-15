@@ -1,20 +1,23 @@
 package com.smn.utpcontacts.activity;
 
+import android.content.pm.PackageManager;
 import android.os.Bundle;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
+import android.widget.Toast;
 import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.appcompat.widget.SearchView;
+import androidx.biometric.BiometricPrompt;
+import androidx.core.content.ContextCompat;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
+import com.google.android.material.appbar.MaterialToolbar;
 import com.google.android.material.dialog.MaterialAlertDialogBuilder;
 import com.google.android.material.floatingactionbutton.FloatingActionButton;
 import android.content.Intent;
-import androidx.appcompat.widget.Toolbar;
 import android.widget.TextView;
-import android.widget.Toast;
 import androidx.lifecycle.LiveData;
 import androidx.swiperefreshlayout.widget.SwipeRefreshLayout;
 import com.smn.utpcontacts.R;
@@ -22,12 +25,18 @@ import com.smn.utpcontacts.adapter.ContactAdapter;
 import com.smn.utpcontacts.database.AppDatabase;
 import com.smn.utpcontacts.model.Contact;
 import com.smn.utpcontacts.util.SessionManager;
-import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.Executor;
+import java.util.stream.Collectors;
+import android.Manifest;
+import android.net.Uri;
+import androidx.core.app.ActivityCompat;
 
 public class ContactListActivity extends AppCompatActivity implements
         ContactAdapter.OnContactClickListener,
-        ContactAdapter.OnFavoriteClickListener {
+        ContactAdapter.OnFavoriteClickListener,
+        ContactAdapter.OnPrivacyClickListener,
+        ContactAdapter.OnPhoneClickListener{
 
     private RecyclerView recyclerView;
     private ContactAdapter adapter;
@@ -36,10 +45,17 @@ public class ContactListActivity extends AppCompatActivity implements
     private SessionManager sessionManager;
     private String currentUserId;
     private SwipeRefreshLayout swipeRefreshLayout;
-    private SearchView searchView;
     private MenuItem favoriteMenuItem;
     private boolean showingFavorites = false;
     private LiveData<List<Contact>> currentContactsLiveData;
+    private boolean showingPrivateContacts = false;
+    private BiometricPrompt biometricPrompt;
+    private BiometricPrompt.PromptInfo promptInfo;
+    private Executor executor;
+    private String currentOrderBy = "name";
+    private MaterialToolbar toolbar;
+    private static final int CALL_PHONE_PERMISSION_REQUEST = 102;
+    private String pendingCallNumber;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -47,6 +63,7 @@ public class ContactListActivity extends AppCompatActivity implements
         setContentView(R.layout.activity_contact_list);
 
         initComponents();
+        setupBiometricAuth();
         setupRecyclerView();
         setupSwipeRefresh();
         loadContacts();
@@ -57,7 +74,7 @@ public class ContactListActivity extends AppCompatActivity implements
         sessionManager = new SessionManager(this);
         currentUserId = sessionManager.getUserEmail();
 
-        Toolbar toolbar = findViewById(R.id.toolbar);
+        toolbar = findViewById(R.id.toolbar);
         setSupportActionBar(toolbar);
         if (getSupportActionBar() != null) {
             getSupportActionBar().setTitle(R.string.contacts_title);
@@ -69,56 +86,65 @@ public class ContactListActivity extends AppCompatActivity implements
 
         FloatingActionButton fab = findViewById(R.id.fabAddContact);
         fab.setOnClickListener(v -> addNewContact());
-
-        setupSearchView();
     }
 
-    private void setupSearchView() {
-        searchView = findViewById(R.id.searchView);
-        searchView.setIconifiedByDefault(false);
-        searchView.setQueryHint(getString(R.string.search_hint));
-        searchView.setOnQueryTextListener(new SearchView.OnQueryTextListener() {
-            @Override
-            public boolean onQueryTextSubmit(String query) {
-                return false;
-            }
+    private void setupBiometricAuth() {
+        executor = ContextCompat.getMainExecutor(this);
+        biometricPrompt = new BiometricPrompt(this, executor,
+                new BiometricPrompt.AuthenticationCallback() {
+                    @Override
+                    public void onAuthenticationSucceeded(@NonNull BiometricPrompt.AuthenticationResult result) {
+                        super.onAuthenticationSucceeded(result);
+                        runOnUiThread(() -> {
+                            showingPrivateContacts = true;
+                            updateVisibilityUI();
+                            adapter.setShowPrivateContacts(true);
+                            refreshContacts();
+                            showToast(R.string.authentication_success);
+                        });
+                    }
 
-            @Override
-            public boolean onQueryTextChange(String newText) {
-                if (showingFavorites) {
-                    filterFavoriteContacts(newText);
-                } else {
-                    filterContacts(newText);
-                }
-                return true;
-            }
-        });
-    }
+                    @Override
+                    public void onAuthenticationError(int errorCode, @NonNull CharSequence errString) {
+                        super.onAuthenticationError(errorCode, errString);
+                        runOnUiThread(() -> {
+                            showToast(R.string.authentication_success);
+                        });
+                    }
 
-    private void setupSwipeRefresh() {
-        swipeRefreshLayout.setColorSchemeResources(R.color.purple_500);
-        swipeRefreshLayout.setOnRefreshListener(() -> {
-            refreshContacts();
-            swipeRefreshLayout.setRefreshing(false);
-        });
+                    @Override
+                    public void onAuthenticationFailed() {
+                        super.onAuthenticationFailed();
+                        runOnUiThread(() -> {
+                            showToast(R.string.authentication_success);
+                        });
+                    }
+                });
+
+        promptInfo = new BiometricPrompt.PromptInfo.Builder()
+                .setTitle(getString(R.string.biometric_prompt_title))
+                .setSubtitle(getString(R.string.biometric_prompt_subtitle))
+                .setNegativeButtonText(getString(R.string.biometric_prompt_negative))
+                .build();
     }
 
     private void setupRecyclerView() {
         adapter = new ContactAdapter();
         adapter.setOnContactClickListener(this);
         adapter.setOnFavoriteClickListener(this);
+        adapter.setOnPrivacyClickListener(this);
+        adapter.setOnPhoneClickListener(this);
 
         LinearLayoutManager layoutManager = new LinearLayoutManager(this);
         recyclerView.setLayoutManager(layoutManager);
         recyclerView.setHasFixedSize(true);
         recyclerView.setAdapter(adapter);
 
-        // Añadir scroll listener para cargar más contactos
         recyclerView.addOnScrollListener(new RecyclerView.OnScrollListener() {
             @Override
             public void onScrolled(@NonNull RecyclerView recyclerView, int dx, int dy) {
                 super.onScrolled(recyclerView, dx, dy);
-                if (dy > 0) { // Scrolling down
+                if (dy > 0) {
                     int visibleItemCount = layoutManager.getChildCount();
                     int totalItemCount = layoutManager.getItemCount();
                     int firstVisibleItemPosition = layoutManager.findFirstVisibleItemPosition();
@@ -132,24 +158,11 @@ public class ContactListActivity extends AppCompatActivity implements
         });
     }
 
-    @Override
-    public void onContactClick(Contact contact) {
-        Intent intent = new Intent(this, AddEditContactActivity.class);
-        intent.putExtra("contact_id", contact.getId());
-        startActivity(intent);
-    }
-
-    @Override
-    public void onFavoriteClick(Contact contact, int position) {
-        contact.setFavorite(!contact.isFavorite());
-        AppDatabase.databaseWriteExecutor.execute(() -> {
-            db.contactDao().update(contact);
-            runOnUiThread(() -> {
-                adapter.notifyItemChanged(position);
-                showToast(contact.isFavorite() ?
-                        R.string.contact_added_to_favorites :
-                        R.string.contact_removed_from_favorites);
-            });
+    private void setupSwipeRefresh() {
+        swipeRefreshLayout.setColorSchemeResources(R.color.purple_500);
+        swipeRefreshLayout.setOnRefreshListener(() -> {
+            refreshContacts();
+            swipeRefreshLayout.setRefreshing(false);
         });
     }
 
@@ -157,8 +170,13 @@ public class ContactListActivity extends AppCompatActivity implements
         if (currentContactsLiveData != null) {
             currentContactsLiveData.removeObservers(this);
         }
-        String orderBy = "name";
-        currentContactsLiveData = db.contactDao().getAllContacts(currentUserId, orderBy);
+
+        if (showingPrivateContacts) {
+            currentContactsLiveData = db.contactDao().getAllContactsAuthenticated(currentUserId, currentOrderBy);
+        } else {
+            currentContactsLiveData = db.contactDao().getAllContacts(currentUserId, currentOrderBy);
+        }
+
         currentContactsLiveData.observe(this, this::updateContactsList);
     }
 
@@ -167,16 +185,24 @@ public class ContactListActivity extends AppCompatActivity implements
             currentContactsLiveData.removeObservers(this);
         }
 
-        currentContactsLiveData = db.contactDao().searchContacts(currentUserId, query, "name");
-        currentContactsLiveData.observe(this, this::updateContactsList);
-    }
-
-    private void filterFavoriteContacts(String query) {
-        if (currentContactsLiveData != null) {
-            currentContactsLiveData.removeObservers(this);
+        if (showingPrivateContacts) {
+            currentContactsLiveData = db.contactDao().getAllContactsAuthenticated(currentUserId, currentOrderBy);
+        } else {
+            currentContactsLiveData = db.contactDao().getAllContacts(currentUserId, currentOrderBy);
         }
-        currentContactsLiveData = db.contactDao().getFavoriteContacts(currentUserId, query);
-        currentContactsLiveData.observe(this, this::updateContactsList);
+
+        currentContactsLiveData.observe(this, contacts -> {
+            List<Contact> filteredList;
+            if (!query.isEmpty()) {
+                filteredList = contacts.stream()
+                        .filter(contact -> contact.getName().toLowerCase()
+                                .contains(query.toLowerCase()))
+                        .collect(Collectors.toList());
+            } else {
+                filteredList = contacts;
+            }
+            updateContactsList(filteredList);
+        });
     }
 
     private void updateContactsList(List<Contact> contacts) {
@@ -196,11 +222,14 @@ public class ContactListActivity extends AppCompatActivity implements
     }
 
     private void refreshContacts() {
-        String query = searchView.getQuery().toString();
-        if (showingFavorites) {
-            filterFavoriteContacts(query);
-        } else {
+        MenuItem searchItem = toolbar.getMenu().findItem(R.id.action_search);
+        SearchView searchView = (SearchView) searchItem.getActionView();
+        String query = searchView != null ? searchView.getQuery().toString() : "";
+
+        if (!query.isEmpty()) {
             filterContacts(query);
+        } else {
+            loadContacts();
         }
     }
 
@@ -228,36 +257,145 @@ public class ContactListActivity extends AppCompatActivity implements
                 .show();
     }
 
-    private void showToast(int messageResId) {
-        Toast.makeText(this, messageResId, Toast.LENGTH_SHORT).show();
-    }
-
     @Override
     public boolean onCreateOptionsMenu(Menu menu) {
         getMenuInflater().inflate(R.menu.menu_main, menu);
-        favoriteMenuItem = menu.findItem(R.string.action_favorites);
+
+        MenuItem searchItem = menu.findItem(R.id.action_search);
+        SearchView searchView = (SearchView) searchItem.getActionView();
+        searchView.setQueryHint(getString(R.string.search_hint));
+
+        searchView.setOnQueryTextListener(new SearchView.OnQueryTextListener() {
+            @Override
+            public boolean onQueryTextSubmit(String query) {
+                return false;
+            }
+
+            @Override
+            public boolean onQueryTextChange(String newText) {
+                filterContacts(newText);
+                return true;
+            }
+        });
+
         return true;
     }
 
     @Override
     public boolean onOptionsItemSelected(MenuItem item) {
         int itemId = item.getItemId();
-        if (itemId == R.id.action_logout) {
-            logout();
+        if (itemId == R.id.action_visibility) {
+            togglePrivateContacts();
             return true;
-        } else if (itemId == R.string.action_favorites) {
-            toggleFavorites();
+        } else if (itemId == R.id.action_logout) {
+            logout();
             return true;
         }
         return super.onOptionsItemSelected(item);
     }
 
-    private void toggleFavorites() {
-        showingFavorites = !showingFavorites;
-        favoriteMenuItem.setIcon(showingFavorites ?
-                R.drawable.ic_favorite :
-                R.drawable.ic_favorite_border);
-        searchView.setQuery("", false);
+    private void togglePrivateContacts() {
+        if (!showingPrivateContacts) {
+            biometricPrompt.authenticate(promptInfo);
+        } else {
+            showingPrivateContacts = false;
+            updateVisibilityUI();
+            adapter.setShowPrivateContacts(false);
+            refreshContacts();
+        }
+    }
+
+    private void updateVisibilityUI() {
+        MenuItem menuItem = toolbar.getMenu().findItem(R.id.action_visibility);
+        if (menuItem != null) {
+            menuItem.setIcon(showingPrivateContacts ?
+                    R.drawable.ic_visibility_on :
+                    R.drawable.ic_visibility_off);
+        }
+    }
+
+    @Override
+    public void onContactClick(Contact contact) {
+        Intent intent = new Intent(this, AddEditContactActivity.class);
+        intent.putExtra("contact_id", contact.getId());
+        startActivity(intent);
+    }
+
+    @Override
+    public void onFavoriteClick(Contact contact, int position) {
+        contact.setFavorite(!contact.isFavorite());
+        AppDatabase.databaseWriteExecutor.execute(() -> {
+            db.contactDao().update(contact);
+            runOnUiThread(() -> {
+                adapter.notifyItemChanged(position);
+                showToast(contact.isFavorite() ?
+                        R.string.contact_added_to_favorites :
+                        R.string.contact_removed_from_favorites);
+            });
+        });
+    }
+
+    @Override
+    public void onPrivacyClick(Contact contact, int position) {
+        if (showingPrivateContacts) {
+            contact.setPrivate(!contact.isPrivate());
+            AppDatabase.databaseWriteExecutor.execute(() -> {
+                db.contactDao().update(contact);
+                runOnUiThread(() -> {
+                    adapter.notifyItemChanged(position);
+                    showToast(contact.isPrivate() ?
+                            R.string.contact_made_private :
+                            R.string.contact_made_public);
+                });
+            });
+        }
+    }
+
+    private void showToast(int messageResId) {
+        Toast.makeText(this, messageResId, Toast.LENGTH_SHORT).show();
+    }
+
+    public void setOrderBy(String orderBy) {
+        this.currentOrderBy = orderBy;
         refreshContacts();
+    }
+
+    @Override
+    public void onPhoneClick(String phoneNumber) {
+        if (ContextCompat.checkSelfPermission(this, Manifest.permission.CALL_PHONE)
+                != PackageManager.PERMISSION_GRANTED) {
+            pendingCallNumber = phoneNumber;
+            ActivityCompat.requestPermissions(this,
+                    new String[]{Manifest.permission.CALL_PHONE},
+                    CALL_PHONE_PERMISSION_REQUEST);
+        } else {
+            makePhoneCall(phoneNumber);
+        }
+    }
+
+    private void makePhoneCall(String phoneNumber) {
+        try {
+            Intent intent = new Intent(Intent.ACTION_CALL);
+            intent.setData(Uri.parse("tel:" + phoneNumber));
+            startActivity(intent);
+        } catch (SecurityException e) {
+            showToast(R.string.call_permission_denied);
+        }
+    }
+
+    @Override
+    public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions,
+                                           @NonNull int[] grantResults) {
+        super.onRequestPermissionsResult(requestCode, permissions, grantResults);
+        if (requestCode == CALL_PHONE_PERMISSION_REQUEST) {
+            if (grantResults.length > 0 && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
+                if (pendingCallNumber != null) {
+                    makePhoneCall(pendingCallNumber);
+                    pendingCallNumber = null;
+                }
+            } else {
+                showToast(R.string.call_permission_denied);
+            }
+        }
     }
 }

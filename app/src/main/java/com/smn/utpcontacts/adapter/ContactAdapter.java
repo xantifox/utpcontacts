@@ -20,6 +20,9 @@ import com.smn.utpcontacts.model.Contact;
 public class ContactAdapter extends ListAdapter<Contact, ContactAdapter.ContactViewHolder> {
     private OnContactClickListener listener;
     private OnFavoriteClickListener favoriteListener;
+    private OnPrivacyClickListener privacyListener;
+    private OnPhoneClickListener phoneListener;
+    private boolean showPrivateContacts = false;
 
     public interface OnContactClickListener {
         void onContactClick(Contact contact);
@@ -27,6 +30,10 @@ public class ContactAdapter extends ListAdapter<Contact, ContactAdapter.ContactV
 
     public interface OnFavoriteClickListener {
         void onFavoriteClick(Contact contact, int position);
+    }
+
+    public interface OnPrivacyClickListener {
+        void onPrivacyClick(Contact contact, int position);
     }
 
     private static final DiffUtil.ItemCallback<Contact> DIFF_CALLBACK =
@@ -41,6 +48,7 @@ public class ContactAdapter extends ListAdapter<Contact, ContactAdapter.ContactV
                     return oldItem.getName().equals(newItem.getName()) &&
                             oldItem.getMainPhone().equals(newItem.getMainPhone()) &&
                             oldItem.isFavorite() == newItem.isFavorite() &&
+                            oldItem.isPrivate() == newItem.isPrivate() &&
                             TextUtils.equals(oldItem.getPhotoUrl(), newItem.getPhotoUrl());
                 }
             };
@@ -57,6 +65,15 @@ public class ContactAdapter extends ListAdapter<Contact, ContactAdapter.ContactV
         this.favoriteListener = listener;
     }
 
+    public void setOnPrivacyClickListener(OnPrivacyClickListener listener) {
+        this.privacyListener = listener;
+    }
+
+    public void setShowPrivateContacts(boolean show) {
+        this.showPrivateContacts = show;
+        notifyDataSetChanged();
+    }
+
     @NonNull
     @Override
     public ContactViewHolder onCreateViewHolder(@NonNull ViewGroup parent, int viewType) {
@@ -68,7 +85,7 @@ public class ContactAdapter extends ListAdapter<Contact, ContactAdapter.ContactV
     @Override
     public void onBindViewHolder(@NonNull ContactViewHolder holder, int position) {
         Contact contact = getItem(position);
-        holder.bind(contact);
+        holder.bind(contact, showPrivateContacts);
     }
 
     static class ContactViewHolder extends RecyclerView.ViewHolder {
@@ -77,6 +94,7 @@ public class ContactAdapter extends ListAdapter<Contact, ContactAdapter.ContactV
         private final TextView textViewName;
         private final TextView textViewPhone;
         private final ImageView imageViewFavorite;
+        private final ImageView imageViewPrivate;
 
         ContactViewHolder(@NonNull View itemView) {
             super(itemView);
@@ -85,9 +103,10 @@ public class ContactAdapter extends ListAdapter<Contact, ContactAdapter.ContactV
             textViewName = itemView.findViewById(R.id.textViewName);
             textViewPhone = itemView.findViewById(R.id.textViewPhone);
             imageViewFavorite = itemView.findViewById(R.id.imageViewFavorite);
+            imageViewPrivate = itemView.findViewById(R.id.imageViewPrivate);
         }
 
-        void bind(final Contact contact) {
+        void bind(final Contact contact, boolean showPrivateContacts) {
             // Configurar textos
             textViewName.setText(contact.getName());
             textViewPhone.setText(formatPhoneNumber(contact.getMainPhone()));
@@ -107,8 +126,42 @@ public class ContactAdapter extends ListAdapter<Contact, ContactAdapter.ContactV
             // Configurar estado de favorito
             updateFavoriteState(contact);
 
+            // Configurar privacidad
+            imageViewPrivate.setVisibility(showPrivateContacts ? View.VISIBLE : View.GONE);
+            if (showPrivateContacts) {
+                imageViewPrivate.setImageResource(
+                        contact.isPrivate() ? R.drawable.ic_lock_closed : R.drawable.ic_lock_open
+                );
+
+                // Añadir animación al cambiar el estado de privacidad
+                if (contact.isPrivate()) {
+                    imageViewPrivate.animate()
+                            .scaleX(1.2f)
+                            .scaleY(1.2f)
+                            .setDuration(150)
+                            .withEndAction(() ->
+                                    imageViewPrivate.animate()
+                                            .scaleX(1f)
+                                            .scaleY(1f)
+                                            .setDuration(150)
+                                            .start()
+                            ).start();
+                }
+            }
+
             // Configurar clicks
             setupClickListeners(contact);
+
+            // Configurar el click del teléfono
+            textViewPhone.setOnClickListener(v -> {
+                if (getBindingAdapter() instanceof ContactAdapter) {
+                    ContactAdapter adapter = (ContactAdapter) getBindingAdapter();
+                    if (adapter.phoneListener != null && contact.getMainPhone() != null
+                            && !contact.getMainPhone().isEmpty()) {
+                        adapter.phoneListener.onPhoneClick(contact.getMainPhone());
+                    }
+                }
+            });
         }
 
         private void updateFavoriteState(Contact contact) {
@@ -150,6 +203,15 @@ public class ContactAdapter extends ListAdapter<Contact, ContactAdapter.ContactV
                     }
                 }
             });
+
+            imageViewPrivate.setOnClickListener(v -> {
+                if (getBindingAdapter() instanceof ContactAdapter) {
+                    ContactAdapter adapter = (ContactAdapter) getBindingAdapter();
+                    if (adapter.privacyListener != null) {
+                        adapter.privacyListener.onPrivacyClick(contact, getBindingAdapterPosition());
+                    }
+                }
+            });
         }
 
         private String formatPhoneNumber(String phone) {
@@ -168,5 +230,13 @@ public class ContactAdapter extends ListAdapter<Contact, ContactAdapter.ContactV
 
             return phone;
         }
+    }
+
+    public interface OnPhoneClickListener {
+        void onPhoneClick(String phoneNumber);
+    }
+
+    public void setOnPhoneClickListener(OnPhoneClickListener listener) {
+        this.phoneListener = listener;
     }
 }

@@ -18,7 +18,7 @@ import com.smn.utpcontacts.model.Email;
 import com.smn.utpcontacts.model.Phone;
 import com.smn.utpcontacts.model.User;
 
-@Database(entities = {Contact.class, Phone.class, Email.class, User.class}, version = 2)
+@Database(entities = {Contact.class, Phone.class, Email.class, User.class}, version = 3)
 public abstract class AppDatabase extends RoomDatabase {
     private static volatile AppDatabase INSTANCE;
     private static final int NUMBER_OF_THREADS = 4;
@@ -29,6 +29,13 @@ public abstract class AppDatabase extends RoomDatabase {
         @Override
         public void migrate(SupportSQLiteDatabase database) {
             database.execSQL("ALTER TABLE contacts ADD COLUMN mainPhone TEXT");
+        }
+    };
+
+    static final Migration MIGRATION_2_3 = new Migration(2, 3) {
+        @Override
+        public void migrate(SupportSQLiteDatabase database) {
+            database.execSQL("ALTER TABLE contacts ADD COLUMN isPrivate INTEGER NOT NULL DEFAULT 0");
         }
     };
 
@@ -45,11 +52,22 @@ public abstract class AppDatabase extends RoomDatabase {
                                     context,
                                     AppDatabase.class,
                                     "contacts_database"
-                            ).addMigrations(MIGRATION_1_2)
+                            )
+                            .addMigrations(MIGRATION_1_2, MIGRATION_2_3)
+                            // Puedes descomentar la siguiente línea si necesitas permitir queries en el hilo principal
+                            // .allowMainThreadQueries()
                             .build();
                 }
             }
         }
         return INSTANCE;
+    }
+
+    /**
+     * Método para limpiar la instancia de la base de datos
+     * Útil para testing o cuando necesites recrear la base de datos
+     */
+    public static void destroyInstance() {
+        INSTANCE = null;
     }
 }
