@@ -25,6 +25,7 @@ import androidx.core.content.ContextCompat;
 import androidx.core.content.FileProvider;
 
 import com.bumptech.glide.Glide;
+import com.google.android.material.button.MaterialButton;
 import com.google.android.material.dialog.MaterialAlertDialogBuilder;
 import com.google.android.material.floatingactionbutton.FloatingActionButton;
 import com.google.android.material.textfield.TextInputEditText;
@@ -67,6 +68,9 @@ public class AddEditContactActivity extends AppCompatActivity {
     private static final int CAMERA_REQUEST = 2;
     private Uri photoURI;
 
+    private MaterialButton btnCall;
+    private static final int CALL_PHONE_PERMISSION_REQUEST = 101;
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -75,6 +79,7 @@ public class AddEditContactActivity extends AppCompatActivity {
         initComponents();
         setupToolbar();
         setupTextWatchers();
+        setupCallButton();
         checkMode();
 
         // Manejo del botón de retroceso
@@ -113,6 +118,9 @@ public class AddEditContactActivity extends AppCompatActivity {
         // FAB
         fabSave = findViewById(R.id.fabSave);
         fabSave.setOnClickListener(v -> saveContact());
+
+        // Inicializar el botón de llamada
+        btnCall = findViewById(R.id.btnCall);
     }
 
     private void setupToolbar() {
@@ -420,6 +428,16 @@ public class AddEditContactActivity extends AppCompatActivity {
             } else {
                 Toast.makeText(this, "Permiso de cámara denegado", Toast.LENGTH_SHORT).show();
             }
+        } else if (requestCode == CALL_PHONE_PERMISSION_REQUEST) {
+            if (grantResults.length > 0 && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
+                String phoneNumber = isEditMode && contact != null ?
+                        contact.getMainPhone() : etPhone.getText().toString().trim();
+                if (!phoneNumber.isEmpty()) {
+                    makePhoneCall(phoneNumber);
+                }
+            } else {
+                Toast.makeText(this, "Permiso de llamada denegado", Toast.LENGTH_SHORT).show();
+            }
         }
     }
 
@@ -530,5 +548,42 @@ public class AddEditContactActivity extends AppCompatActivity {
                 ".jpg",        /* sufijo */
                 storageDir     /* directorio */
         );
+    }
+
+    private void setupCallButton() {
+        btnCall.setOnClickListener(v -> {
+            if (isEditMode && contact != null && contact.getMainPhone() != null && !contact.getMainPhone().isEmpty()) {
+                requestCall(contact.getMainPhone());
+            } else {
+                String phoneNumber = etPhone.getText().toString().trim();
+                if (!phoneNumber.isEmpty()) {
+                    requestCall(phoneNumber);
+                } else {
+                    Toast.makeText(this, "No hay número de teléfono disponible", Toast.LENGTH_SHORT).show();
+                }
+            }
+        });
+    }
+
+    private void requestCall(String phoneNumber) {
+        if (ContextCompat.checkSelfPermission(this, Manifest.permission.CALL_PHONE)
+                != PackageManager.PERMISSION_GRANTED) {
+            ActivityCompat.requestPermissions(this,
+                    new String[]{Manifest.permission.CALL_PHONE},
+                    CALL_PHONE_PERMISSION_REQUEST);
+        } else {
+            makePhoneCall(phoneNumber);
+        }
+    }
+
+    private void makePhoneCall(String phoneNumber) {
+        try {
+            Intent intent = new Intent(Intent.ACTION_CALL);
+            intent.setData(Uri.parse("tel:" + phoneNumber));
+            startActivity(intent);
+        } catch (SecurityException e) {
+            Toast.makeText(this, "Error al realizar la llamada", Toast.LENGTH_SHORT).show();
+            Log.e("AddEditContact", "Error al realizar llamada: " + e.getMessage());
+        }
     }
 }
